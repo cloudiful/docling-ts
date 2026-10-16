@@ -8,6 +8,7 @@ import {
   type DoclingComponentType,
   DoclingClient,
   type DoclingJob,
+  DoclingTaskCancelledError,
   type DoclingTaskResult,
   type DocumentCompletedItem,
   type ConversionItem,
@@ -38,6 +39,7 @@ import {
   type ReadinessResponse,
   type RemoteTargetResult,
   TargetName,
+  type TaskStatus,
   type UsageLimitExceededResponse,
   type WebsocketMessage,
   type ZipArchiveResult,
@@ -216,6 +218,12 @@ export function compileTimeParity(client: DoclingClient): unknown[] {
     kind: 'task_completed',
     task_status: 'success',
   };
+  const cancelledTaskCompletedProgress: ProgressTaskCompleted = {
+    kind: 'task_completed',
+    task_status: 'cancelled',
+  };
+  const cancelledStatus: TaskStatus = 'cancelled';
+  const cancelledTaskError = new DoclingTaskCancelledError('task-123');
   const callbackRequest: ProgressCallbackRequest = {
     task_id: 'task-123',
     progress: docCompletedProgress,
@@ -387,6 +395,9 @@ export function compileTimeParity(client: DoclingClient): unknown[] {
     docCompletedItem,
     docCompletedProgress,
     taskCompletedProgress,
+    cancelledTaskCompletedProgress,
+    cancelledStatus,
+    cancelledTaskError,
     callbackRequest,
     callbackResponse,
     failurePhase,
