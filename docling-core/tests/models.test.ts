@@ -4,6 +4,7 @@ import {
   DEFAULT_CONTENT_LAYERS,
   DEFAULT_EXPORT_LABELS,
   DOCUMENT_TOKENS_EXPORT_LABELS,
+  SCHEMA_VERSION_HISTORY,
   type CodeItem,
   type DoclingDocument,
   type FieldHeadingItem,
@@ -47,12 +48,22 @@ describe('Constants', () => {
     expect(DEFAULT_CONTENT_LAYERS).toEqual(['body']);
   });
 
-  it('exports DEFAULT_EXPORT_LABELS with 23 labels', () => {
+  it('exports DEFAULT_EXPORT_LABELS with 25 labels', () => {
     expect(DEFAULT_EXPORT_LABELS).toContain('title');
     expect(DEFAULT_EXPORT_LABELS).toContain('marker');
     expect(DEFAULT_EXPORT_LABELS).toContain('field_key');
     expect(DEFAULT_EXPORT_LABELS).toContain('handwritten_text');
-    expect(DEFAULT_EXPORT_LABELS.length).toBe(23);
+    expect(DEFAULT_EXPORT_LABELS.length).toBe(25);
+  });
+
+  it('exports field_region and field_item in DEFAULT_EXPORT_LABELS', () => {
+    expect(DEFAULT_EXPORT_LABELS).toContain('field_region');
+    expect(DEFAULT_EXPORT_LABELS).toContain('field_item');
+  });
+
+  it('inherits field_region and field_item in DOCUMENT_TOKENS_EXPORT_LABELS', () => {
+    expect(DOCUMENT_TOKENS_EXPORT_LABELS).toContain('field_region');
+    expect(DOCUMENT_TOKENS_EXPORT_LABELS).toContain('field_item');
   });
 
   it('exports DOCUMENT_TOKENS_EXPORT_LABELS containing footnote, caption, key_value_region, form', () => {
@@ -60,6 +71,29 @@ describe('Constants', () => {
     expect(DOCUMENT_TOKENS_EXPORT_LABELS).toContain('caption');
     expect(DOCUMENT_TOKENS_EXPORT_LABELS).toContain('key_value_region');
     expect(DOCUMENT_TOKENS_EXPORT_LABELS).toContain('form');
+  });
+
+  it('DOCUMENT_TOKENS_EXPORT_LABELS has no duplicate entries', () => {
+    const unique = new Set(DOCUMENT_TOKENS_EXPORT_LABELS);
+    expect(unique.size).toBe(DOCUMENT_TOKENS_EXPORT_LABELS.length);
+  });
+
+  it('exports SCHEMA_VERSION_HISTORY as a non-empty array', () => {
+    expect(Array.isArray(SCHEMA_VERSION_HISTORY)).toBe(true);
+    expect(SCHEMA_VERSION_HISTORY.length).toBeGreaterThan(0);
+  });
+
+  it('SCHEMA_VERSION_HISTORY entries have schema, library_version, note fields', () => {
+    for (const entry of SCHEMA_VERSION_HISTORY) {
+      expect(typeof entry.schema).toBe('string');
+      expect(typeof entry.library_version).toBe('string');
+      expect(typeof entry.note).toBe('string');
+    }
+  });
+
+  it('SCHEMA_VERSION_HISTORY last entry matches CURRENT_VERSION', () => {
+    const last = SCHEMA_VERSION_HISTORY[SCHEMA_VERSION_HISTORY.length - 1];
+    expect(last.schema).toBe(CURRENT_VERSION);
   });
 });
 
