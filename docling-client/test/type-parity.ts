@@ -1,4 +1,5 @@
 import {
+  type ArtifactType,
   type AutoSubmitResult,
   type BaseProgress,
   ChunkerKind,
@@ -185,6 +186,7 @@ export function compileTimeParity(client: DoclingClient): unknown[] {
       'iwork_numbers',
       'ebcdic',
       'afp',
+      'calendar',
     ],
     to_formats: ['latex'],
   };
@@ -263,6 +265,16 @@ export function compileTimeParity(client: DoclingClient): unknown[] {
   const zipResult: ZipArchiveResult = {
     kind: 'ZipArchiveResult',
     content: new Uint8Array(),
+    filename: 'converted_docs.zip',
+  };
+  const unnamedZipResult: ZipArchiveResult = {
+    kind: 'ZipArchiveResult',
+    content: new Uint8Array(),
+    filename: null,
+  };
+  const zipResultWithoutFilename: ZipArchiveResult = {
+    kind: 'ZipArchiveResult',
+    content: new Uint8Array(),
   };
   const remoteResult: RemoteTargetResult = {
     kind: 'RemoteTargetResult',
@@ -286,19 +298,28 @@ export function compileTimeParity(client: DoclingClient): unknown[] {
   };
   const targetNameInBody = TargetNameConst.INBODY;
 
+  // v2.146.0 parity: ArtifactRef.artifact_type accepts "chunks"
+  const chunksArtifactType: ArtifactType = 'chunks';
+
   // v2.140.0 parity: alias type tests
   const tableFormerModeVal: TableFormerMode = 'accurate';
   const imageRefModeVal: ImageRefMode = 'placeholder';
   const responseFormatVal: ResponseFormat = 'doctags';
+  const v2148ResponseFormats: ResponseFormat[] = [
+    'unlimited_ocr2',
+    'lightonocr_markdown',
+    'surya_html',
+    'nemotron_parse_v3_5',
+  ];
   const inferenceFrameworkVal: InferenceFramework = 'transformers';
   const vlmModelTypeVal: VlmModelType = 'granite_docling';
   const statusWatcherKindVal: StatusWatcherKind = StatusWatcherKind.WEBSOCKET;
   const chunkerKindVal: ChunkerKind = ChunkerKind.HYBRID;
   const chunkerTypeVal: ChunkerType = ChunkerType.HIERARCHICAL;
 
-  // v2.142.0 parity: verify all ConvertDocumentsOptions fields from
-  // https://github.com/docling-project/docling/blob/v2.142.0/docling/datamodel/service/options.py
-  const fullOptionsV2142: ConvertDocumentsOptions = {
+  // v2.150.0 parity: verify all ConvertDocumentsOptions fields from
+  // https://github.com/docling-project/docling/blob/v2.150.0/docling/datamodel/service/options.py#L302
+  const fullOptionsV2150: ConvertDocumentsOptions = {
     // from_formats / to_formats
     from_formats: ['pdf', 'docx'] satisfies InputFormat[],
     to_formats: ['md', 'json'] satisfies OutputFormat[],
@@ -434,19 +455,23 @@ export function compileTimeParity(client: DoclingClient): unknown[] {
     messageKind,
     wsMessage,
     zipResult,
+    unnamedZipResult,
+    zipResultWithoutFilename,
     remoteResult,
     presignedArtifactResult,
     chunkedDocResult,
     taskResult,
     targetNameInBody,
+    chunksArtifactType,
     tableFormerModeVal,
     imageRefModeVal,
     responseFormatVal,
+    v2148ResponseFormats,
     inferenceFrameworkVal,
     vlmModelTypeVal,
     statusWatcherKindVal,
     chunkerKindVal,
     chunkerTypeVal,
-    fullOptionsV2142,
+    fullOptionsV2150,
   ];
 }

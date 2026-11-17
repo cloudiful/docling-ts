@@ -109,6 +109,10 @@ const EXTENSION_FORMATS: Readonly<Record<string, InputFormat>> = {
   ebc: 'ebcdic',
   ebcdic: 'ebcdic',
   afp: 'afp',
+  ics: 'calendar',
+  ical: 'calendar',
+  icalendar: 'calendar',
+  ifb: 'calendar',
 };
 
 export async function normalizeSourceInput(
@@ -493,6 +497,15 @@ export function applyPageLimits(
   }
   if (effectiveRange !== undefined) {
     validatePageRange(effectiveRange);
+    // Python only writes the range back when it differs from the merged
+    // options, so the all-pages default is never sent in the request.
+    if (
+      options.page_range === undefined &&
+      effectiveRange[0] === 1 &&
+      effectiveRange[1] === Number.MAX_SAFE_INTEGER
+    ) {
+      return clone(options);
+    }
     return { ...clone(options), page_range: [...effectiveRange] };
   }
   return clone(options);
@@ -677,6 +690,8 @@ function guessMimeType(filename: string): string {
       eml: 'message/rfc822',
       msg: 'application/vnd.ms-outlook',
       epub: 'application/epub+zip',
+      ics: 'text/calendar',
+      ifb: 'text/calendar',
     }[extension] ?? 'application/octet-stream'
   );
 }
@@ -718,6 +733,7 @@ const INPUT_FORMATS = new Set<InputFormat>([
   'iwork_numbers',
   'ebcdic',
   'afp',
+  'calendar',
 ]);
 const OUTPUT_FORMATS = new Set([
   'md',
@@ -769,12 +785,16 @@ const VLM_RESPONSE_FORMATS = new Set([
   'markdown',
   'deepseekocr_markdown',
   'unlimited_ocr_markdown',
+  'unlimited_ocr2',
+  'lightonocr_markdown',
   'html',
   'otsl',
   'plaintext',
   'chandra_html',
+  'surya_html',
   'dots_json',
   'nemotron_parse_v2',
+  'nemotron_parse_v3_5',
   'mineru2',
 ]);
 const VLM_INFERENCE_FRAMEWORKS = new Set(['mlx', 'transformers', 'vllm']);

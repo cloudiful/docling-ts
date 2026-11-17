@@ -1,11 +1,18 @@
 {
   "name": "@docling/docling-core",
-  "version": "2.104.0",
+  "version": "2.107.0",
   "description": "TypeScript definitions and functions for using Docling output.",
   "type": "module",
   "main": "dist/index.cjs",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "doclang": [
+        "./dist/doclang/index.d.ts"
+      ]
+    }
+  },
   "exports": {
     ".": {
       "import": {
@@ -15,6 +22,16 @@
       "require": {
         "types": "./dist/index.d.cts",
         "default": "./dist/index.cjs"
+      }
+    },
+    "./doclang": {
+      "import": {
+        "types": "./dist/doclang/index.d.ts",
+        "default": "./dist/doclang/index.js"
+      },
+      "require": {
+        "types": "./dist/doclang/index.d.cts",
+        "default": "./dist/doclang/index.cjs"
       }
     }
   },
@@ -73,21 +90,30 @@
     "url": "git+https://github.com/docling-project/docling-ts.git"
   },
   "bugs": {
-    "url": "https://github.com/DS4SD/docling-project/issues"
+    "url": "https://github.com/docling-project/docling-ts/issues"
   },
-  "homepage": "https://github.com/DS4SD/docling-project/tree/main/docling-core",
+  "homepage": "https://github.com/docling-project/docling-ts/tree/main/docling-core",
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",
     "@eslint/js": "10.0.1",
-    "eslint": "10.13.0",
+    "@xmldom/xmldom": "^0.9.12",
+    "eslint": "10.14.0",
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-prettier": "5.5.7",
-    "globals": "17.13.0",
+    "globals": "17.14.0",
     "prettier": "3.9.10",
     "publint": "^0.3.24",
     "tsup": "9.0.0",
     "typescript": "6.0.3",
-    "typescript-eslint": "8.71.2",
-    "vitest": "5.0.5"
+    "typescript-eslint": "8.72.1",
+    "vitest": "5.1.0"
+  },
+  "peerDependencies": {
+    "@xmldom/xmldom": ">=0.8.0"
+  },
+  "peerDependenciesMeta": {
+    "@xmldom/xmldom": {
+      "optional": true
+    }
   }
 }

@@ -363,6 +363,11 @@ export type Script = 'baseline' | 'sub' | 'super';
 export type Orientation = 'rot_0' | 'rot_90' | 'rot_180' | 'rot_270';
 export type ImageRefMode = 'placeholder' | 'embedded' | 'referenced';
 export type CaptionPlacement = 'standard' | 'layout';
+/**
+ * How to render formatting that has no Markdown syntax (underline,
+ * subscript, superscript): drop it (`none`) or fall back to HTML tags (`html`).
+ */
+export type FormattingFallbackMode = 'none' | 'html';
 export type CollectionType = 'Document' | 'Record';
 
 export interface BoundingBox {
@@ -861,7 +866,7 @@ export interface PageItem {
 // Constants & Version history
 // ---------------------------------------------------------------------------
 
-export const CURRENT_VERSION = '1.10.0';
+export const CURRENT_VERSION = '1.11.0';
 export const FIRST_SUPPORTED_MINOR = 5;
 
 /**
@@ -901,7 +906,19 @@ export const SCHEMA_VERSION_HISTORY: ReadonlyArray<{
     library_version: 'v2.69.0',
     note: 'FieldItem types, 7 new DocItemLabel values',
   },
+  {
+    schema: '1.11.0',
+    library_version: 'v2.106.0',
+    note: 'InlineGroup runs carry their own significant whitespace',
+  },
 ];
+
+/**
+ * First schema version in which InlineGroup runs carry their own significant
+ * whitespace and serializers concatenate them faithfully. Documents stamped
+ * below this have runs stored without boundary whitespace.
+ */
+export const INLINE_WHITESPACE_CONTRACT_VERSION = '1.11.0';
 export const DEFAULT_CONTENT_LAYERS: ContentLayer[] = ['body'];
 export const DEFAULT_EXPORT_LABELS: DocItemLabel[] = [
   'title',

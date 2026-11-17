@@ -5,6 +5,7 @@ import {
   DEFAULT_EXPORT_LABELS,
   DOCUMENT_TOKENS_EXPORT_LABELS,
   FIRST_SUPPORTED_MINOR,
+  INLINE_WHITESPACE_CONTRACT_VERSION,
   SCHEMA_VERSION_HISTORY,
   type BaseSource,
   type CodeItem,
@@ -15,6 +16,7 @@ import {
   type FieldRegionItem,
   type FieldValueItem,
   type FormItem,
+  type FormattingFallbackMode,
   type FormulaItem,
   type InlineGroup,
   type KeyValueItem,
@@ -46,8 +48,17 @@ import {
 } from '../src/types';
 
 describe('Constants', () => {
-  it('exports CURRENT_VERSION as 1.10.0', () => {
-    expect(CURRENT_VERSION).toBe('1.10.0');
+  it('exports CURRENT_VERSION as 1.11.0', () => {
+    expect(CURRENT_VERSION).toBe('1.11.0');
+  });
+
+  it('exports INLINE_WHITESPACE_CONTRACT_VERSION as the current version', () => {
+    expect(INLINE_WHITESPACE_CONTRACT_VERSION).toBe('1.11.0');
+    expect(SCHEMA_VERSION_HISTORY.at(-1)).toEqual({
+      schema: '1.11.0',
+      library_version: 'v2.106.0',
+      note: 'InlineGroup runs carry their own significant whitespace',
+    });
   });
 
   it('exports FIRST_SUPPORTED_MINOR as 5', () => {
@@ -526,5 +537,10 @@ describe('New Models and Interfaces', () => {
     };
     expect(desc.kind).toBe('description');
     expect(misc.kind).toBe('misc');
+  });
+
+  it('declares the FormattingFallbackMode values', () => {
+    const modes: FormattingFallbackMode[] = ['none', 'html'];
+    expect(modes).toEqual(['none', 'html']);
   });
 });

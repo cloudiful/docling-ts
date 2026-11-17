@@ -16,6 +16,8 @@ import {
   DoclingTaskCancelledError,
   DoclingTaskError,
   DoclingTaskNotFoundError,
+  applyPageLimits,
+  normalizeSourceInput,
   type ConvertSourcesRequest,
   type DoclingBinaryResponse,
   type DoclingTransport,
@@ -191,6 +193,58 @@ describe('conversion submission and targets', () => {
         }
       ).options.to_formats
     ).toContain('json');
+  });
+  it('keeps the presigned rejection when the in-body fallback fails too', async () => {
+    const transport = new ScriptedTransport(
+      new DoclingHttpError({
+        method: 'POST',
+        url: 'https://docling.example.test/v1/convert/source/async',
+        status: 400,
+        body: { detail: 'artifact storage to be configured' },
+      }),
+      new DoclingHttpError({
+        method: 'POST',
+        url: 'https://docling.example.test/v1/convert/source/async',
+        status: 422,
+        body: { detail: 'invalid OCR configuration' },
+      })
+    );
+    const client = clientWith(transport);
+
+    const error = await client
+      .submitUrl('https://files.example.test/manual.pdf')
+      .catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(DoclingServiceError);
+    expect((error as DoclingServiceError).status).toBe(422);
+    expect((error as DoclingServiceError).detail).toBe(
+      'invalid OCR configuration The client tried the InBody target because the server ' +
+        'rejected the presigned_url target: artifact storage to be configured'
+    );
+    expect(transport.requests).toHaveLength(2);
+  });
+
+  it('does not rewrite non-validation in-body fallback failures', async () => {
+    const fallbackError = new DoclingHttpError({
+      method: 'POST',
+      url: 'https://docling.example.test/v1/convert/source/async',
+      status: 500,
+      body: { detail: 'boom' },
+    });
+    const transport = new ScriptedTransport(
+      new DoclingHttpError({
+        method: 'POST',
+        url: 'https://docling.example.test/v1/convert/source/async',
+        status: 400,
+        body: { detail: 'artifact storage to be configured' },
+      }),
+      fallbackError
+    );
+    const client = clientWith(transport);
+
+    await expect(
+      client.submitUrl('https://files.example.test/manual.pdf')
+    ).rejects.toBe(fallbackError);
   });
 
   it('does not hide unrelated presigned-target submission errors', async () => {
@@ -780,6 +834,44 @@ describe('submitBatch target validation and result routing', () => {
     expect(result).toEqual(presigned);
     // presigned result has a `documents` array — counts-only result does not
     expect((result as typeof presigned).documents).toBeDefined();
+  });
+
+  it('accepts a chunks artifact in a presigned batch result', async () => {
+    const presigned = {
+      num_converted: 1,
+      num_succeeded: 1,
+      num_partially_succeeded: 0,
+      num_failed: 0,
+      processing_time: 0.25,
+      documents: [
+        {
+          source_index: 0,
+          source_uri: 'https://example.test/a.pdf',
+          filename: 'a.pdf',
+          status: 'success',
+          artifacts: [
+            {
+              artifact_type: 'chunks',
+              mime_type: 'application/json',
+              uri: 'https://download.example.test/a.chunks.json',
+            },
+          ],
+          errors: [],
+          timings: {},
+        },
+      ],
+    };
+    const transport = new ScriptedTransport(task('batch-chunks', 'success'), presigned);
+    const client = clientWith(transport);
+
+    const result = await (
+      await client.submitBatch({
+        sources: [{ kind: 'http', url: 'https://example.test/a.pdf' }],
+        target: { kind: 'presigned_url' },
+      })
+    ).result();
+
+    expect(result).toEqual(presigned);
   });
 
   // Mirrors: test_submit_batch_returns_counts_result_for_s3_target
@@ -2185,6 +2277,55 @@ describe('v2.131.0 new fields', () => {
   });
 });
 
+describe('v2.148.0 calendar input format and VLM response formats', () => {
+  it('accepts the calendar input format in request options', async () => {
+    const transport = new ScriptedTransport(task('calendar-test', 'pending'));
+    const client = clientWith(transport);
+
+    await client.submitUrl(
+      'https://files.example.test/events.ics',
+      { from_formats: ['calendar'] },
+      { target: { kind: 'inbody' } }
+    );
+
+    const body = transport.requests[0]?.body as {
+      options: Record<string, unknown>;
+    };
+    expect(body.options.from_formats).toEqual(['calendar']);
+  });
+
+  it.each(['ics', 'ical', 'icalendar', 'ifb'])(
+    'guesses the calendar input format for .%s files',
+    async extension => {
+      const normalized = await normalizeSourceInput({
+        kind: 'file',
+        base64_string: 'QkVHSU46VkNBTEVOREFS',
+        filename: `events.${extension}`,
+      });
+      expect(normalized.descriptor.format).toBe('calendar');
+    }
+  );
+
+  it.each([
+    'unlimited_ocr2',
+    'lightonocr_markdown',
+    'surya_html',
+    'nemotron_parse_v3_5',
+  ] as const)('accepts the %s VLM response format', responseFormat => {
+    expect(() =>
+      clientWith(new ScriptedTransport(), {
+        options: {
+          vlm_pipeline_model_local: {
+            repo_id: 'model',
+            response_format: responseFormat,
+            inference_framework: 'transformers',
+          },
+        },
+      })
+    ).not.toThrow();
+  });
+});
+
 describe('v2.133.0 ExportResult.document field rename', () => {
   it('parses a chunk response where the service sends ExportResult with content field (legacy wire)', async () => {
     const chunkResult = {
@@ -2291,5 +2432,54 @@ describe('v2.134.0 new features', () => {
     expect(result.status).toBe('success');
     expect(result.input.filename).toBe('budget.numbers');
     expect(result.input.format).toBe('iwork_numbers');
+  });
+});
+
+describe('v2.145.0 service client changes', () => {
+  it('does not send the default page range in request options', async () => {
+    const transport = new ScriptedTransport(
+      new DoclingHttpError({
+        method: 'POST',
+        url: 'https://docling.example.test/v1/convert/source/async',
+        status: 400,
+        body: { detail: 'artifact storage to be configured' },
+      }),
+      task('convert-default-range', 'success'),
+      documentResponse('manual.pdf')
+    );
+    const client = clientWith(transport);
+
+    await client.convert('https://example.test/manual.pdf');
+
+    for (const request of transport.requests.slice(0, 2)) {
+      const body = request.body as { options: Record<string, unknown> };
+      expect(body.options).not.toHaveProperty('page_range');
+    }
+  });
+
+  it('sends an explicit page range and caps open-ended ranges with maxNumPages', async () => {
+    const transport = new ScriptedTransport(
+      new DoclingHttpError({
+        method: 'POST',
+        url: 'https://docling.example.test/v1/convert/source/async',
+        status: 400,
+        body: { detail: 'artifact storage to be configured' },
+      }),
+      task('convert-range', 'success'),
+      documentResponse('manual.pdf')
+    );
+    const client = clientWith(transport);
+
+    await client.convert('https://example.test/manual.pdf', { maxNumPages: 5 });
+
+    const body = transport.requests[1]?.body as { options: Record<string, unknown> };
+    expect(body.options.page_range).toEqual([1, 5]);
+  });
+
+  it('omits an all-pages range from applyPageLimits output', () => {
+    expect(applyPageLimits({}, [1, Number.MAX_SAFE_INTEGER])).not.toHaveProperty(
+      'page_range'
+    );
+    expect(applyPageLimits({}, [2, 4]).page_range).toEqual([2, 4]);
   });
 });

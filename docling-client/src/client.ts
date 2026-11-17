@@ -104,6 +104,10 @@ export interface DoclingClientOptions {
   maxConcurrency?: number;
   artifactDownloader?: ArtifactDownloader;
   artifactDownload?: ArtifactDownloaderOptions;
+  artifactDownloadTimeout?: number;
+  maxArtifactDownloadBytes?: number;
+  artifactUrlAllowlist?: string[];
+  allowPrivateArtifactUrls?: boolean;
 }
 
 export interface SubmitCallOptions {
@@ -215,8 +219,23 @@ export class DoclingClient<TDocument = DoclingDocument> {
     this.#maxConcurrency = validateConcurrency(
       options.maxConcurrency ?? DEFAULT_MAX_CONCURRENCY
     );
+    const downloaderOptions: ArtifactDownloaderOptions = {
+      ...options.artifactDownload,
+    };
+    if (options.artifactDownloadTimeout !== undefined) {
+      downloaderOptions.timeoutMs = options.artifactDownloadTimeout;
+    }
+    if (options.maxArtifactDownloadBytes !== undefined) {
+      downloaderOptions.maxBytes = options.maxArtifactDownloadBytes;
+    }
+    if (options.artifactUrlAllowlist !== undefined) {
+      downloaderOptions.artifactUrlAllowlist = options.artifactUrlAllowlist;
+    }
+    if (options.allowPrivateArtifactUrls !== undefined) {
+      downloaderOptions.allowPrivateUrls = options.allowPrivateArtifactUrls;
+    }
     this.#artifactDownloader =
-      options.artifactDownloader ?? new ArtifactDownloader(options.artifactDownload);
+      options.artifactDownloader ?? new ArtifactDownloader(downloaderOptions);
   }
 
   async health(options: { signal?: AbortSignal } = {}): Promise<HealthCheckResponse> {
@@ -1031,7 +1050,9 @@ export class DoclingClient<TDocument = DoclingDocument> {
           target: { kind: 'inbody' },
         },
         options
-      );
+      ).catch((fallbackError: unknown) => {
+        throw combineInBodyFallbackError(error, fallbackError);
+      });
     }) as Promise<DoclingJob<AutoSubmitResult<TDocument>>>;
   }
 
@@ -1054,7 +1075,9 @@ export class DoclingClient<TDocument = DoclingDocument> {
         withJsonOutput(options),
         { kind: 'inbody' },
         requestOptions
-      );
+      ).catch((fallbackError: unknown) => {
+        throw combineInBodyFallbackError(error, fallbackError);
+      });
     }) as Promise<DoclingJob<AutoSubmitResult<TDocument>>>;
   }
 
@@ -1745,6 +1768,7 @@ function parsePresignedResponse(value: unknown): PresignedUrlConvertResponse {
           'doclang',
           'dclx',
           'resource_bundle',
+          'chunks',
         ].includes(String(artifact.artifact_type))
       ) {
         throw schemaMismatch(`${artifactPath}.artifact_type is unsupported`);
@@ -2132,6 +2156,33 @@ function shouldFallbackFromPresigned(error: unknown): boolean {
     'literal_error',
     'enum',
   ].some(phrase => detail.includes(phrase));
+}
+
+/**
+ * Combines both rejections when the server refuses the InBody fallback too, so
+ * the actionable presigned rejection is not hidden by the fallback error.
+ */
+function combineInBodyFallbackError(
+  presignedError: unknown,
+  fallbackError: unknown
+): unknown {
+  if (
+    !(presignedError instanceof DoclingHttpError) ||
+    !(fallbackError instanceof DoclingHttpError) ||
+    ![400, 422].includes(fallbackError.status)
+  ) {
+    return fallbackError;
+  }
+  // A FastAPI validation error has a list detail, which maps to undefined.
+  const fallbackDetail = httpDetail(fallbackError.body);
+  const prefix = fallbackDetail === undefined ? '' : `${fallbackDetail} `;
+  return new DoclingServiceError(fallbackError.message, {
+    status: fallbackError.status,
+    detail:
+      `${prefix}The client tried the InBody target because ` +
+      `the server rejected the presigned_url target: ${httpDetail(presignedError.body)}`,
+    cause: fallbackError,
+  });
 }
 
 function targetNeedsJson(target: SubmitTarget): target is InBodyTarget {

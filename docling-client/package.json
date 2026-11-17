@@ -1,6 +1,6 @@
 {
   "name": "@docling/docling-client",
-  "version": "2.142.0",
+  "version": "2.150.0",
   "description": "TypeScript client for Docling Serve and Docling for IBM watsonx.",
   "type": "module",
   "main": "dist/index.cjs",
@@ -58,7 +58,6 @@
   },
   "sideEffects": false,
   "dependencies": {
-    "fflate": "^0.8.2",
     "ipaddr.js": "^2.2.0",
     "isomorphic-ws": "^5.0.0"
   },
@@ -67,14 +66,14 @@
     "@eslint/js": "10.0.1",
     "@types/node": "^26.5.1",
     "@types/ws": "^8.18.1",
-    "eslint": "10.13.0",
-    "globals": "17.13.0",
+    "eslint": "10.14.0",
+    "globals": "17.14.0",
     "prettier": "3.9.10",
     "publint": "^0.3.24",
     "tsup": "9.0.0",
     "typescript": "5.9.3",
-    "typescript-eslint": "8.71.2",
-    "vitest": "5.0.5"
+    "typescript-eslint": "8.72.1",
+    "vitest": "5.1.0"
   },
   "engines": {
     "node": ">=18"

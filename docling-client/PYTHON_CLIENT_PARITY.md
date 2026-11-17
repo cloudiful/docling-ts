@@ -1,7 +1,7 @@
 # Python client parity
 
-This document compares `@docling/docling-client` with Docling Python 2.142.0
-at commit `6aaf87e`, specifically:
+This document compares `@docling/docling-client` with Docling Python 2.150.0
+at commit `6852c27`, specifically:
 
 - `DoclingServiceClient`
 - `AsyncDoclingServiceClient`
@@ -15,23 +15,24 @@ additional TypeScript capabilities are documented after the parity tables.
 
 ## Client configuration
 
-| Python constructor capability | TypeScript                               | Parity notes                                                                                                  |
-| ----------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| Service URL                   | `baseUrl`                                | Both normalize trailing slashes and reject `/v1`, query, and fragment components.                             |
-| API key                       | `apiKey`                                 | HTTP uses `X-Api-Key`; WebSocket uses the query parameter and also the header in Node.                        |
-| Default conversion options    | `options`                                | Deep-copied at construction; per-call merge is shallow.                                                       |
-| Status watcher                | `statusWatcher`                          | `websocket` default or `polling`.                                                                             |
-| WebSocket polling fallback    | `webSocketFallbackToPoll`                | Enabled by default.                                                                                           |
-| Poll server wait              | `pollServerWaitSeconds`                  | Five seconds by default.                                                                                      |
-| Poll client interval          | `pollClientIntervalMs`                   | Defaults to the server-wait duration.                                                                         |
-| Job timeout                   | `jobTimeoutMs`                           | Five minutes by default.                                                                                      |
-| Conversion concurrency        | `maxConcurrency`                         | Eight by default; valid range 1–512.                                                                          |
-| HTTP retries                  | `httpRetries`                            | Three by default.                                                                                             |
-| HTTP timeout                  | `httpTimeoutMs`                          | Fetch has one total per-attempt timeout; Python/httpx exposes distinct connect and read/write/pool timeouts.  |
-| HTTP backoff                  | `httpBackoffBaseMs`                      | One second by default.                                                                                        |
-| Artifact timeout and size     | `artifactDownload.timeoutMs`, `maxBytes` | Same 60-second and 512-MiB defaults.                                                                          |
-| Private artifact override     | `artifactDownload.allowPrivateUrls`      | Public TypeScript option; Python keeps its equivalent internal.                                               |
-| Owned resource cleanup        | `close()`                                | TypeScript close is asynchronous, idempotent, closes an injected transport once, and prevents later requests. |
+| Python constructor capability | TypeScript                                             | Parity notes                                                                                                  |
+| ----------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| Service URL                   | `baseUrl`                                              | Both normalize trailing slashes and reject `/v1`, query, and fragment components.                             |
+| API key                       | `apiKey`                                               | HTTP uses `X-Api-Key`; WebSocket uses the query parameter and also the header in Node.                        |
+| Default conversion options    | `options`                                              | Deep-copied at construction; per-call merge is shallow.                                                       |
+| Status watcher                | `statusWatcher`                                        | `websocket` default or `polling`.                                                                             |
+| WebSocket polling fallback    | `webSocketFallbackToPoll`                              | Enabled by default.                                                                                           |
+| Poll server wait              | `pollServerWaitSeconds`                                | Five seconds by default.                                                                                      |
+| Poll client interval          | `pollClientIntervalMs`                                 | Defaults to the server-wait duration.                                                                         |
+| Job timeout                   | `jobTimeoutMs`                                         | Five minutes by default.                                                                                      |
+| Conversion concurrency        | `maxConcurrency`                                       | Eight by default; valid range 1–512.                                                                          |
+| HTTP retries                  | `httpRetries`                                          | Three by default.                                                                                             |
+| HTTP timeout                  | `httpTimeoutMs`                                        | Fetch has one total per-attempt timeout; Python/httpx exposes distinct connect and read/write/pool timeouts.  |
+| HTTP backoff                  | `httpBackoffBaseMs`                                    | One second by default.                                                                                        |
+| Artifact timeout and size     | `artifactDownloadTimeout` / `maxArtifactDownloadBytes` | Direct or `artifactDownload.timeoutMs`, `maxBytes`. Same 60-second and 512-MiB defaults.                      |
+| Private artifact override     | `allowPrivateArtifactUrls`                             | Direct or `artifactDownload.allowPrivateUrls`. Now supported in both Python and TypeScript.                   |
+| Artifact URL allowlist        | `artifactUrlAllowlist`                                 | Direct or `artifactDownload.artifactUrlAllowlist`. Supported in both Python and TypeScript.                   |
+| Owned resource cleanup        | `close()`                                              | TypeScript close is asynchronous, idempotent, closes an injected transport once, and prevents later requests. |
 
 `fetch`, `transport`, `webSocketFactory`, `artifactDownloader`, and artifact
 DNS/fetch injection are TypeScript extensions.
@@ -159,6 +160,187 @@ High-level limits match Python:
 TypeScript restricts limit values to safe integers, which is stricter than
 Python's unbounded integer type.
 
+## Service client changes (v2.150.0)
+
+Python v2.150.0 at commit `6852c27` is a release bump over v2.149.0.
+All service-client and service datamodel APIs, options, enums, endpoints,
+watchers, schedulers, and error models remain in full parity:
+
+- `DoclingServiceClient` and `AsyncDoclingServiceClient`:
+  ```
+  https://github.com/docling-project/docling/blob/v2.150.0/docling/service_client/client.py#L914
+  https://github.com/docling-project/docling/blob/v2.150.0/docling/service_client/_async_client.py#L109
+  ```
+- Service datamodels and options in `docling.datamodel.service`:
+  ```
+  https://github.com/docling-project/docling/blob/v2.150.0/docling/datamodel/service/options.py#L302
+  https://github.com/docling-project/docling/blob/v2.150.0/docling/datamodel/service/requests.py#L199
+  https://github.com/docling-project/docling/blob/v2.150.0/docling/datamodel/service/responses.py#L264
+  ```
+- Task status watchers and jobs:
+  ```
+  https://github.com/docling-project/docling/blob/v2.150.0/docling/service_client/watchers.py#L92
+  https://github.com/docling-project/docling/blob/v2.150.0/docling/service_client/job.py#L67
+  ```
+
+## Service client changes (v2.149.0)
+
+Python v2.149.0 at commit `8103d81` is a release bump over v2.148.0.
+All service-client and service datamodel APIs, options, enums, endpoints,
+watchers, schedulers, and error models remain in full parity:
+
+- `DoclingServiceClient` and `AsyncDoclingServiceClient`:
+  ```
+  https://github.com/docling-project/docling/blob/v2.150.0/docling/service_client/client.py#L914
+  https://github.com/docling-project/docling/blob/v2.150.0/docling/service_client/_async_client.py#L109
+  ```
+- Service datamodels and options in `docling.datamodel.service`:
+  ```
+  https://github.com/docling-project/docling/blob/v2.150.0/docling/datamodel/service/options.py#L302
+  https://github.com/docling-project/docling/blob/v2.150.0/docling/datamodel/service/requests.py#L199
+  https://github.com/docling-project/docling/blob/v2.150.0/docling/datamodel/service/responses.py#L264
+  ```
+- Task status watchers and jobs:
+  ```
+  https://github.com/docling-project/docling/blob/v2.150.0/docling/service_client/watchers.py#L92
+  https://github.com/docling-project/docling/blob/v2.150.0/docling/service_client/job.py#L67
+  ```
+
+## Service client changes (v2.148.0)
+
+Python v2.148.0 at commit `0fa0918` adds two service-facing changes since
+v2.147.0. The remaining changes (superscript/subscript detection, backend
+fixes) are server-side or core-library behavior with no service-client or
+service-datamodel surface.
+
+- `InputFormat.CALENDAR` (`"calendar"`) for the new iCalendar backend, with the
+  extensions `ics`, `ical`, `icalendar`, and `ifb` and the `text/calendar` MIME
+  type. `ConvertDocumentsOptions.from_formats` defaults to every `InputFormat`:
+
+  ```
+  https://github.com/docling-project/docling/blob/v2.150.0/docling/datamodel/base_models.py#L136
+  ```
+
+  The TypeScript `InputFormat` union includes `'calendar'`, the `from_formats`
+  validator accepts it, and the source normalizer maps those extensions to it
+  through the same extension table that Python builds in
+  `_build_extension_to_format_map()`:
+
+  ```
+  https://github.com/docling-project/docling/blob/v2.150.0/docling/service_client/client.py#L906
+  ```
+
+- `ResponseFormat` gained `SURYA_HTML` (Surya OCR 2.5), `UNLIMITED_OCR2`,
+  `LIGHTONOCR_MARKDOWN`, and `NEMOTRON_PARSE_V3_5`, used by
+  `VlmModelLocal.response_format` and `VlmModelApi.response_format`:
+
+  ```
+  https://github.com/docling-project/docling/blob/v2.150.0/docling/datamodel/pipeline_options_vlm_model.py#L120
+  ```
+
+  The TypeScript `VlmResponseFormat` (alias `ResponseFormat`) union and the
+  request-option validator accept the new values.
+
+| Python (v2.148.0)                    | TypeScript                                   | Wire key              |
+| ------------------------------------ | -------------------------------------------- | --------------------- |
+| `InputFormat.CALENDAR`               | `InputFormat` / `INPUT_FORMATS`              | `calendar`            |
+| `FormatToExtensions[CALENDAR]`       | `EXTENSION_FORMATS` / `guessMimeType()`      | `ics`, `ifb`, ...     |
+| `ResponseFormat.SURYA_HTML`          | `VlmResponseFormat` / `VLM_RESPONSE_FORMATS` | `surya_html`          |
+| `ResponseFormat.UNLIMITED_OCR2`      | `VlmResponseFormat` / `VLM_RESPONSE_FORMATS` | `unlimited_ocr2`      |
+| `ResponseFormat.LIGHTONOCR_MARKDOWN` | `VlmResponseFormat` / `VLM_RESPONSE_FORMATS` | `lightonocr_markdown` |
+| `ResponseFormat.NEMOTRON_PARSE_V3_5` | `VlmResponseFormat` / `VLM_RESPONSE_FORMATS` | `nemotron_parse_v3_5` |
+
+## Service client changes (v2.147.0)
+
+Python v2.147.0 at commit `e3681a6` formally exposes `artifact_url_allowlist` and `_allow_private_artifact_urls` in `DoclingServiceClient.__init__`:
+
+```
+https://github.com/docling-project/docling/blob/v2.150.0/docling/service_client/client.py#L933
+```
+
+TypeScript fully supports these options:
+
+- `artifactUrlAllowlist` (and nested `artifactDownload.artifactUrlAllowlist`) parses origins to selectively trust internal endpoints.
+- `allowPrivateArtifactUrls` (and nested `artifactDownload.allowPrivateUrls`) completely bypasses public-address checks when desired.
+
+| Python (v2.147.0)              | TypeScript                 | Option Key                 |
+| ------------------------------ | -------------------------- | -------------------------- |
+| `artifact_url_allowlist`       | `artifactUrlAllowlist`     | `artifactUrlAllowlist`     |
+| `_allow_private_artifact_urls` | `allowPrivateArtifactUrls` | `allowPrivateArtifactUrls` |
+
+## Service client changes (v2.146.0)
+
+Python v2.146.0 at commit `c622bcb` includes two service-facing fixes since
+v2.145.0. The remaining v2.146.0 changes (VLM presets, LightOnOCR-3,
+Nemotron parsing, and backend fixes) are server-side or core-library behavior
+with no service-client or service-datamodel surface.
+
+- `ArtifactRef.artifact_type` now allows `"chunks"`:
+
+  ```
+  https://github.com/docling-project/docling/blob/v2.150.0/docling/datamodel/service/responses.py#L138
+  ```
+
+  The TypeScript `ArtifactType` union includes `'chunks'` and the presigned
+  response validator accepts it. `selectDocumentArtifact()` still materializes
+  only `resource_bundle` or `json` artifacts, so a `chunks` artifact is never
+  mistaken for a document.
+
+- The presigned-first auto-target path no longer hides the presigned rejection
+  when the `InBody` fallback is also refused. When the fallback fails with HTTP
+  400 or 422, Python raises a combined `ServiceError` that keeps the fallback
+  status and appends the presigned detail:
+
+  ```
+  https://github.com/docling-project/docling/blob/v2.150.0/docling/service_client/client.py#L857
+  ```
+
+  TypeScript `combineInBodyFallbackError()` mirrors this and throws a
+  `DoclingServiceError` with the fallback status and the combined `detail`
+  that appends "The client tried the InBody target because the server rejected
+  the presigned_url target: <presigned detail>" to the fallback detail. Other
+  fallback failures propagate unchanged.
+
+| Python (v2.146.0)           | TypeScript                     | Wire key        |
+| --------------------------- | ------------------------------ | --------------- |
+| `ArtifactRef.artifact_type` | `ArtifactType`                 | `artifact_type` |
+| `_inbody_fallback_error()`  | `combineInBodyFallbackError()` | `detail`        |
+
+## Service client changes (v2.145.0)
+
+Python v2.145.0 at commit `45d334e` includes two service-facing changes since
+v2.142.0. Everything else in the v2.143.0–v2.145.0 range (OCR, VLM, ASR,
+backend fixes, mixed-format ZIP inputs) is server-side or core-library
+behavior with no service-client or service-datamodel surface.
+
+- `ZipArchiveResult` gained an optional `filename` (v2.143.0), a suggested
+  download name for the archive:
+
+  ```
+  https://github.com/docling-project/docling/blob/v2.150.0/docling/datamodel/service/responses.py#L122
+  ```
+
+  The TypeScript `ZipArchiveResult` interface exposes `filename?: string | null`.
+  Raw ZIP downloads already surfaced the `Content-Disposition` name through
+  `RawServiceResult.filename`.
+
+- The service client no longer sends the default page range in request options
+  (v2.145.0). Python's `_resolve_options()` only writes `page_range` back when
+  the effective range differs from the merged options:
+
+  ```
+  https://github.com/docling-project/docling/blob/v2.150.0/docling/service_client/client.py#L431
+  ```
+
+  TypeScript `applyPageLimits()` mirrors this: with no `page_range`, `pageRange`,
+  or `maxNumPages`, no `page_range` is sent, and an unset range is never
+  materialized as the all-pages default.
+
+| Python (v2.145.0)               | TypeScript                  | Wire key     |
+| ------------------------------- | --------------------------- | ------------ |
+| `ZipArchiveResult.filename`     | `ZipArchiveResult.filename` | `filename`   |
+| `_resolve_options()` page range | `applyPageLimits()`         | `page_range` |
+
 ## Version bump (v2.142.0)
 
 Python v2.142.0 at commit `6aaf87e` is a version-only bump over v2.141.0.
@@ -173,7 +355,7 @@ Python v2.141.0 to use an internal `_run_bounded()` helper from
 `docling/service_client/_scheduler.py` for bounded concurrency fan-out:
 
 ```
-https://github.com/docling-project/docling/blob/v2.142.0/docling/service_client/_scheduler.py#L31
+https://github.com/docling-project/docling/blob/v2.150.0/docling/service_client/_scheduler.py#L31
 ```
 
 The TypeScript scheduler already implements equivalent bounded-concurrency
@@ -185,7 +367,7 @@ changes are needed; this is a pure internal refactoring on the Python side.
 `ConfidenceScores` gained a recursive `pages` field in Python v2.139.0:
 
 ```
-https://github.com/docling-project/docling/blob/v2.142.0/docling/datamodel/service/responses.py#L45
+https://github.com/docling-project/docling/blob/v2.150.0/docling/datamodel/service/responses.py#L45
 ```
 
 When present, it maps 1-based page numbers to per-page `ConfidenceScores`
@@ -203,7 +385,7 @@ objects. The TypeScript `ConfidenceScores` interface includes the
 `content` to `document` in Python v2.133.0:
 
 ```
-https://github.com/docling-project/docling/blob/v2.142.0/docling/datamodel/service/responses.py#L84
+https://github.com/docling-project/docling/blob/v2.150.0/docling/datamodel/service/responses.py#L80
 ```
 
 Pydantic continues to serialize the field as `content` on the wire via

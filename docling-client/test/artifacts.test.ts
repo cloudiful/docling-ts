@@ -1,4 +1,3 @@
-import { strToU8, zipSync } from 'fflate';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
@@ -9,6 +8,7 @@ import {
   selectDocumentArtifact,
   type PresignedUrlConvertResponse,
 } from '../src';
+import { utf8 as strToU8, zip as zipSync } from './zip-fixture';
 
 const INPUT = {
   filename: 'manual.pdf',
@@ -246,6 +246,26 @@ describe('presigned artifact materialization', () => {
 
     expect(selectDocumentArtifact(item).artifact_type).toBe('resource_bundle');
   });
+
+  it('prefers json over a chunks artifact and ignores chunks otherwise', () => {
+    const item = presignedResponse([
+      {
+        artifact_type: 'chunks',
+        mime_type: 'application/json',
+        uri: 'https://example.test/chunks.json',
+      },
+      {
+        artifact_type: 'json',
+        mime_type: 'application/json',
+        uri: 'https://example.test/document.json',
+      },
+    ]).documents[0]!;
+
+    expect(selectDocumentArtifact(item).artifact_type).toBe('json');
+    expect(() =>
+      selectDocumentArtifact({ ...item, artifacts: [item.artifacts[0]!] })
+    ).toThrow("neither a 'json' nor a 'resource_bundle'");
+  });
 });
 
 describe('ArtifactDownloader fetch binding', () => {
@@ -327,6 +347,25 @@ describe('artifact download security', () => {
     ).rejects.toThrow('globally routable');
     expect(fetchImplementation).toHaveBeenCalledTimes(1);
     expect(fetchImplementation.mock.calls[0]?.[1]).not.toHaveProperty('headers');
+  });
+
+  it('respects the artifactUrlAllowlist to trust specific private origins', async () => {
+    const fetchImplementation = vi.fn(async () => new Response('trusted-artifact'));
+    const downloader = new ArtifactDownloader({
+      fetch: fetchImplementation,
+      artifactUrlAllowlist: ['http://127.0.0.1:8080'],
+      resolver: async () => ['127.0.0.1'],
+    });
+
+    // Trusted origin passes
+    await expect(downloader.download('http://127.0.0.1:8080/a')).resolves.toEqual(
+      strToU8('trusted-artifact')
+    );
+
+    // Untrusted private origin fails
+    await expect(downloader.download('http://127.0.0.1:9090/a')).rejects.toThrow(
+      'globally routable'
+    );
   });
 
   it('supports an explicit private-host override and enforces streamed size limits', async () => {

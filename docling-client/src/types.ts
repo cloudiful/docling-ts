@@ -49,7 +49,8 @@ export type InputFormat =
   | 'iwork_keynote'
   | 'iwork_numbers'
   | 'ebcdic'
-  | 'afp';
+  | 'afp'
+  | 'calendar';
 
 export type OutputFormat =
   | 'md'
@@ -84,12 +85,16 @@ export type VlmResponseFormat =
   | 'markdown'
   | 'deepseekocr_markdown'
   | 'unlimited_ocr_markdown'
+  | 'unlimited_ocr2'
+  | 'lightonocr_markdown'
   | 'html'
   | 'otsl'
   | 'plaintext'
   | 'chandra_html'
+  | 'surya_html'
   | 'dots_json'
   | 'nemotron_parse_v2'
+  | 'nemotron_parse_v3_5'
   | 'mineru2';
 export type ResponseFormat = VlmResponseFormat;
 export type VlmInferenceFramework = 'mlx' | 'transformers' | 'vllm';
@@ -246,6 +251,10 @@ export interface ConvertDocumentsOptions {
   from_formats?: InputFormat[];
   to_formats?: OutputFormat[];
   pipeline?: ProcessingPipeline;
+  /**
+   * Only convert a range of pages (1-based, inclusive). The service default
+   * is the whole document, which the client never sends explicitly.
+   */
   page_range?: [number, number];
   do_ocr?: boolean;
   force_ocr?: boolean;
@@ -792,6 +801,12 @@ export type DocumentResultItem<TDocument = DoclingDocument> = ExportResult<TDocu
 export interface ZipArchiveResult {
   kind: 'ZipArchiveResult';
   content: Uint8Array | unknown;
+  /**
+   * Suggested download name for the archive, e.g. derived from the source
+   * document when the task had a single input. Absent or null when no specific
+   * name applies.
+   */
+  filename?: string | null;
 }
 
 export interface RemoteTargetResult {
@@ -860,7 +875,8 @@ export type ArtifactType =
   | 'doctags'
   | 'doclang'
   | 'dclx'
-  | 'resource_bundle';
+  | 'resource_bundle'
+  | 'chunks';
 
 export interface ArtifactRef {
   artifact_type: ArtifactType;
